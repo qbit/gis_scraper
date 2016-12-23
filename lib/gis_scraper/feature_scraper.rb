@@ -13,6 +13,7 @@ class FeatureScraper
     @name = name
     @pk = pk
     @max = max # maxRecordCount - usually 1000
+    @min = min
     @loops = loops
     @threads = GisScraper.config[:threads]
   end
@@ -39,6 +40,10 @@ class FeatureScraper
     @layer.name
   end
 
+  def min
+    @layer.features(orderByFields: "#{pk} ASC", returnGeometry: false, resultRecordCount: 1).first["attributes"]["#{pk}"].to_i
+  end
+
   def renderer
     @layer.drawing_info['renderer']
   end
@@ -56,7 +61,8 @@ class FeatureScraper
   end
 
   def features(n)
-    @layer.features(where: where_text(n))
+    wt = where_text(n)
+    @layer.features(where: wt)
   end
 
   def check_field_length(hash) # https://trac.osgeo.org/gdal/ticket/6529
@@ -84,6 +90,7 @@ class FeatureScraper
   end
 
   def where_text(n)
-    n ? "#{pk} > #{n * @max} AND #{pk} <= #{(n + 1) * @max}" : "#{pk} > 0"
+    m = @min
+    n ? "#{pk} > #{n * @max} + #{m} AND #{pk} <= #{(n + 1) * @max} + #{m}" : "#{pk} > 0 + #{m}"
   end
 end
